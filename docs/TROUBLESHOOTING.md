@@ -64,7 +64,7 @@ docker run -it --rm \
   --network host \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-  moveit-mcp-server:jazzy
+  moveit-mcp-server:rolling
 ```
 
 #### Solution 4: Use Software Rendering
@@ -127,8 +127,9 @@ sudo chmod 1777 /tmp/.X11-unix
 This is already fixed in the Dockerfile with `--break-system-packages`. If you still see it:
 
 ```bash
-# Use the venv version
-docker build -f Dockerfile.venv -t moveit-mcp-server:jazzy .
+# The current Dockerfile already uses a venv approach with --system-site-packages
+# Rebuild the container if needed
+docker-compose build
 ```
 
 #### Out of Disk Space
@@ -162,7 +163,7 @@ Should show:
 **If nodes are missing:**
 ```bash
 # Check if MoveIt launch file exists
-ls /opt/ros/jazzy/share/moveit_resources_panda_moveit_config/launch/
+ls /opt/ros/${ROS_DISTRO}/share/moveit_resources_panda_moveit_config/launch/
 
 # Try launching with verbose output
 ros2 launch moveit_resources_panda_moveit_config demo.launch.py \
@@ -185,14 +186,14 @@ export ROS_DOMAIN_ID=0
 
 ```bash
 # Source ROS setup
-source /opt/ros/jazzy/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 
 # Verify package is installed
 ros2 pkg list | grep moveit
 
-# Install if missing
+# Install if missing (adjust for your ROS distro)
 apt update
-apt install ros-jazzy-moveit-resources-panda-moveit-config
+apt install ros-${ROS_DISTRO}-moveit-resources-panda-moveit-config
 ```
 
 ## MCP Server Issues
@@ -204,8 +205,8 @@ apt install ros-jazzy-moveit-resources-panda-moveit-config
 # Check if moveit_py is installed
 python3 -c "from moveit.planning import MoveItPy; print('OK')"
 
-# Install if missing
-apt install ros-jazzy-moveit-py
+# Install if missing (adjust for your ROS distro)
+apt install ros-${ROS_DISTRO}-moveit-py
 ```
 
 **"No module named 'mcp'":**
@@ -217,8 +218,8 @@ pip3 install --break-system-packages mcp>=0.9.0
 **"moveit-mcp-server command not found":**
 ```bash
 # Reinstall the package
-cd /workspace/moveit2-mcp-server
-pip3 install --break-system-packages -e .
+cd /workspace/moveit-mcp-server
+pip3 install -e .
 
 # Check if installed
 which moveit-mcp-server
@@ -400,13 +401,14 @@ export DISPLAY=:0
 
 # 2. ROS communication
 export ROS_DOMAIN_ID=0
-source /opt/ros/jazzy/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 
-# 3. MoveIt not found
-apt install ros-jazzy-moveit ros-jazzy-moveit-py
+# 3. MoveIt not found (adjust for your ROS distro)
+apt install ros-${ROS_DISTRO}-moveit ros-${ROS_DISTRO}-moveit-py
 
-# 4. MCP server installation
-pip3 install --break-system-packages -e .
+# 4. MCP server installation (in container)
+cd /workspace/moveit-mcp-server
+pip3 install -e .
 
 # 5. Clean restart
 docker-compose down

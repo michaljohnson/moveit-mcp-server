@@ -45,7 +45,8 @@ ros2 launch moveit_resources_panda_moveit_config demo.launch.py use_rviz:=false
 
 **Terminal 2 (Host) - Run RViz:**
 ```bash
-source /opt/ros/jazzy/setup.bash
+# Adjust for your ROS distro
+source /opt/ros/${ROS_DISTRO}/setup.bash
 rviz2
 ```
 

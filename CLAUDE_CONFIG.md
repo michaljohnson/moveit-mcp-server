@@ -21,26 +21,13 @@ Try these configuration formats:
 }
 ```
 
-**Format 2: Explicit transport type**
+**Format 2: Explicit type (Recommended for Claude Desktop)**
 ```json
 {
   "mcpServers": {
     "moveit-mcp-server": {
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8000/sse"
-      }
-    }
-  }
-}
-```
-
-**Format 3: Base URL (let the client append /sse)**
-```json
-{
-  "mcpServers": {
-    "moveit-mcp-server": {
-      "url": "http://localhost:8000"
+      "type": "sse",
+      "url": "http://localhost:8000/sse"
     }
   }
 }

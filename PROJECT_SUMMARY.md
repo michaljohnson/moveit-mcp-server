@@ -84,7 +84,7 @@ Dynamic MCP resources:
 
 ## Technology Stack
 
-- **ROS2**: Jazzy (recommended) or Rolling
+- **ROS2**: Rolling (recommended and fully tested)
 - **MoveIt2**: Motion planning framework
 - **moveit_py**: Python bindings for MoveIt2
 - **MCP SDK**: Model Context Protocol (Python)
@@ -150,8 +150,10 @@ The server is configured via `config/panda_mcp_server.yaml`:
 
 - **README.md**: Project overview and quick start
 - **QUICKSTART.md**: Step-by-step getting started guide
-- **ARCHITECTURE.md**: Detailed system design
-- **TOOLS_REFERENCE.md**: Complete API documentation
+- **docs/ARCHITECTURE.md**: Detailed system design
+- **docs/CLAUDE_CODE_SETUP.md**: Claude Code integration guide
+- **docs/DOCKER.md**: Docker setup guide
+- **docs/TROUBLESHOOTING.md**: Common issues and solutions
 - **CONTRIBUTING.md**: Contribution guidelines
 
 ## Future Enhancements
@@ -212,19 +214,21 @@ Apache 2 License - See LICENSE file
 ## Getting Started
 
 ```bash
-# 1. Clone and install
+# 1. Clone and build
 git clone <repo-url>
-cd moveit2-mcp-server
-./scripts/setup_environment.sh
+cd moveit-mcp-server
+docker-compose build
 
-# 2. Start MoveIt
+# 2. Start container and MoveIt
+docker-compose run --rm moveit-mcp
 ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 
-# 3. Run server
-moveit-mcp-server
+# 3. Run MCP server (in new terminal)
+docker exec -it moveit-mcp-server bash
+moveit-mcp-server-wrapper --transport sse --port 8000
 
-# 4. Test
-python examples/test_client.py
+# 4. Configure Claude Code or Claude Desktop
+# See docs/CLAUDE_CODE_SETUP.md
 ```
 
-See [docs/QUICKSTART.md](docs/QUICKSTART.md) for full instructions.
+See [QUICKSTART.md](QUICKSTART.md) for full instructions.

@@ -37,7 +37,7 @@ docker run -it --rm \
   -e ROS_DOMAIN_ID=0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v $HOME/.Xauthority:/root/.Xauthority:rw \
-  moveit-mcp-server:jazzy
+  moveit-mcp-server:rolling
 ```
 
 ### 3. Inside the Container
@@ -47,7 +47,7 @@ Once inside the container, you can run MoveIt and the MCP server:
 **Terminal 1: Launch MoveIt Demo**
 
 ```bash
-source /opt/ros/jazzy/setup.bash
+# ROS is already sourced in the container
 ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 ```
 
@@ -118,8 +118,7 @@ xhost +local:$(hostname)
 If you see "externally-managed-environment" errors during build, the Dockerfile already handles this with `--break-system-packages`. If you prefer using a virtual environment:
 
 ```bash
-# Use alternative Dockerfile with venv
-docker build -f Dockerfile.venv -t moveit-mcp-server:jazzy .
+# The current Dockerfile already uses a venv approach with --system-site-packages
 ```
 
 ## Development Workflow
@@ -133,8 +132,8 @@ docker run -it --rm \
   -e ROS_DOMAIN_ID=0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v $HOME/.Xauthority:/root/.Xauthority:rw \
-  -v $(pwd):/workspace/moveit2-mcp-server \
-  moveit-mcp-server:jazzy
+  -v $(pwd):/workspace/moveit-mcp-server \
+  moveit-mcp-server:rolling
 ```
 
 Changes to the source code will be immediately reflected in the container.
@@ -146,7 +145,7 @@ Changes to the source code will be immediately reflected in the container.
 docker-compose down
 
 # Remove image
-docker rmi moveit-mcp-server:jazzy
+docker rmi moveit-mcp-server:rolling
 
 # Remove X11 permissions
 xhost -local:docker
@@ -155,11 +154,11 @@ xhost -local:docker
 ## Image Size
 
 The built image is approximately **6-8 GB** due to:
-- ROS2 Jazzy Desktop Full
+- ROS2 Rolling Desktop Full
 - MoveIt2 and dependencies
 - Visualization tools
 
-To reduce size, use `ros:jazzy-ros-core` as base and install only required packages.
+To reduce size, use a minimal ROS2 base image and install only required packages.
 
 ## Alternative: Development Container
 
@@ -176,7 +175,7 @@ For VS Code users, consider using a devcontainer. Create `.devcontainer/devconta
   "mounts": [
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
   ],
-  "postCreateCommand": "source /opt/ros/jazzy/setup.bash"
+  "postCreateCommand": "source /opt/ros/rolling/setup.bash"
 }
 ```
 

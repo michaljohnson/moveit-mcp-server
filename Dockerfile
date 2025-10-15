@@ -32,10 +32,10 @@ RUN pip install --no-cache-dir \
     "uvicorn>=0.23.0"
 
 # Copy MCP server code into the container
-COPY . /workspace/moveit2-mcp-server/
+COPY . /workspace/moveit-mcp-server/
 
 # Install the MCP server (editable mode inside venv)
-RUN cd /workspace/moveit2-mcp-server && \
+RUN cd /workspace/moveit-mcp-server && \
     pip install --no-cache-dir -e .
 
 # Source ROS setup and workspace in bashrc

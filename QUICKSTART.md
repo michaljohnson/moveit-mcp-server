@@ -12,20 +12,15 @@ docker-compose build
 
 ### Step 2: Start the Container
 ```bash
-docker-compose run --rm moveit2-mcp-server
+docker-compose run --rm moveit-mcp
 ```
 
 ### Step 3: Launch Robot Demo (Terminal 1)
 Inside the container, start the Panda robot demo:
 
 ```bash
-# Source the workspace
-source ~/ws_moveit/install/setup.bash
-
-# Launch the robot with MoveIt
+# Launch the robot with MoveIt (ROS is already sourced in the container)
 ros2 launch moveit_resources_panda_moveit_config demo.launch.py
-# OR use the fixed launch file:
-ros2 launch /workspace/moveit2-mcp-server/launch/panda_demo_fixed.launch.py
 ```
 
 Wait for RViz to appear and the robot to be visible.

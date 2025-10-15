@@ -11,14 +11,13 @@ docker-compose build
 docker-compose run --rm moveit-mcp
 
 # In container - Terminal 1: Start robot demo
-source ~/ws_moveit/install/setup.bash
-ros2 launch /workspace/moveit2-mcp-server/launch/panda_demo_fixed.launch.py
+ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 ```
 
 ### 2. Start MCP Server (New Terminal)
 ```bash
 # Exec into running container
-docker exec -it $(docker ps -q --filter ancestor=moveit-mcp-server:jazzy) bash
+docker exec -it moveit-mcp-server bash
 
 # Start MCP server with HTTP/SSE
 moveit-mcp-server-wrapper --transport sse --port 8000
@@ -31,7 +30,7 @@ Add to MCP settings:
 {
   "mcpServers": {
     "moveit-mcp-server": {
-      "transport": "sse",
+      "type": "sse",
       "url": "http://localhost:8000/sse"
     }
   }

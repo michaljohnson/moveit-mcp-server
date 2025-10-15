@@ -17,8 +17,7 @@ docker-compose build
 **Terminal 1: Start container and robot demo**
 ```bash
 docker-compose run --rm moveit-mcp
-source ~/ws_moveit/install/setup.bash
-ros2 launch /workspace/moveit2-mcp-server/launch/panda_demo_fixed.launch.py
+ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 ```
 
 Wait for RViz to appear and the robot to be visible.
@@ -30,8 +29,8 @@ Wait for RViz to appear and the robot to be visible.
 # Find the container ID
 docker ps
 
-# Exec into the container
-docker exec -it <container_id> bash
+# Exec into the container (use the container name)
+docker exec -it moveit-mcp-server bash
 
 # Start MCP server with SSE transport
 moveit-mcp-server-wrapper --transport sse --port 8000
@@ -64,7 +63,7 @@ Edit your MCP configuration file (usually `~/.config/claude/mcp_settings.json` o
 {
   "mcpServers": {
     "moveit-mcp-server": {
-      "transport": "sse",
+      "type": "sse",
       "url": "http://localhost:8000/sse"
     }
   }

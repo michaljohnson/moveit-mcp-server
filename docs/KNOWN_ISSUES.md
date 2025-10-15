@@ -122,7 +122,7 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#rviz2-graphicsdisplay-issues) for RV
 
 ### Self-Collision at Startup
 
-**Fixed** in our [panda_demo_fixed.launch.py](../launch/panda_demo_fixed.launch.py). See [FIX_APPLIED.md](FIX_APPLIED.md).
+The standard MoveIt Panda demo launch file should work correctly. If you encounter self-collision issues at startup, check that you're using the latest version of `moveit_resources_panda_moveit_config`.
 
 ---
 
