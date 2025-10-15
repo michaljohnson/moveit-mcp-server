@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moveit-mcp-server"
+version = "0.1.0"
+description = "MCP Server for MoveIt2 motion planning with Panda robot arm"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "MoveIt MCP Contributors"}
+]
+license = {text = "MIT"}
+keywords = ["mcp", "moveit2", "ros2", "robotics", "motion-planning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Robotics",
+]
+
+dependencies = [
+    "mcp>=0.9.0",
+    "pyyaml>=6.0",
+    "starlette>=0.27.0",
+    "uvicorn>=0.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+moveit-mcp-server = "moveit_mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]

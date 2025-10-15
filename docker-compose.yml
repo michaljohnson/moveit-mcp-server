@@ -1,0 +1,26 @@
+services:
+  moveit-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: moveit-mcp-server:rolling
+    container_name: moveit-mcp-server
+    network_mode: host
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - LIBGL_ALWAYS_SOFTWARE=1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
+      - ./config:/workspace/moveit2-mcp-server/config:ro
+    # Uncomment for NVIDIA GPU support
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    #   - NVIDIA_DRIVER_CAPABILITIES=all
+    stdin_open: true
+    tty: true
+    command: /bin/bash

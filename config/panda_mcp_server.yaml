@@ -1,0 +1,44 @@
+# MoveIt2 MCP Server Configuration for Panda Robot
+
+robot:
+  name: "panda"
+  # Package containing the robot's MoveIt configuration
+  description_package: "moveit_resources_panda_moveit_config"
+
+planning:
+  # Default motion planner (RRTConnect, RRT, PRM, etc.)
+  default_planner: "RRTConnect"
+  # Planning timeout in seconds
+  default_timeout: 5.0
+  # Number of planning attempts
+  planning_attempts: 10
+  # Planning groups to expose
+  planning_groups:
+    - "panda_arm"
+    - "panda_hand"
+  # Cartesian path planning
+  cartesian:
+    step_size: 0.01  # meters
+    jump_threshold: 0.0  # 0.0 disables jump threshold
+
+execution:
+  # Controller names for execution
+  controllers:
+    - "panda_arm_controller"
+    - "hand_controller"
+  # Execution timeout in seconds
+  execution_timeout: 30.0
+
+mcp_server:
+  # Maximum time for async operations before cleanup
+  operation_timeout: 60.0
+  # Maximum concurrent async operations
+  max_concurrent_operations: 10
+  # Rate for updating dynamic resources (Hz)
+  resource_update_rate: 10.0
+  # Node name for ROS2
+  node_name: "moveit_mcp_server"
+
+logging:
+  level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
