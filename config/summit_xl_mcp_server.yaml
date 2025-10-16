@@ -1,0 +1,52 @@
+# MoveIt2 MCP Server Configuration for Summit XL Robot
+
+robot:
+  name: "summit_xl"
+  # Package containing the robot's MoveIt configuration
+  description_package: "icclab_summit_xl_move_it_config"
+  # No namespace - removed for MoveItPy compatibility in Jazzy
+  namespace: ""
+
+planning:
+  # Default motion planner (RRTConnect, RRT, PRM, etc.)
+  default_planner: "RRTConnect"
+  # Planning timeout in seconds
+  default_timeout: 5.0
+  # Number of planning attempts
+  planning_attempts: 10
+  # Planning groups to expose (from summit_xl.srdf)
+  planning_groups:
+    - "arm"
+    - "gripper"
+  # Cartesian path planning
+  cartesian:
+    step_size: 0.01  # meters
+    jump_threshold: 0.0  # 0.0 disables jump threshold
+
+execution:
+  # Controller names for execution (from moveit_controllers.yaml)
+  controllers:
+    - "arm_controller"
+    - "robotiq_gripper_controller"
+  # Execution timeout in seconds
+  execution_timeout: 30.0
+
+mcp_server:
+  # Maximum time for async operations before cleanup
+  operation_timeout: 60.0
+  # Maximum concurrent async operations
+  max_concurrent_operations: 10
+  # Rate for updating dynamic resources (Hz)
+  resource_update_rate: 10.0
+  # Node name for ROS2
+  node_name: "moveit_mcp_server_summit"
+  # Use simulation time (set to true when using Gazebo/simulation)
+  use_sim_time: true
+  # ROS namespace for the MCP server node
+  # NOTE: Due to MoveItPy bugs with namespaces in Jazzy, we keep the node in global namespace
+  # and use absolute topic paths in summit_xl_moveit_py.yaml instead
+  namespace: ""
+
+logging:
+  level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

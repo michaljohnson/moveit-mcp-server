@@ -16,6 +16,8 @@ Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: mcp>=0.9.0
 Requires-Dist: pyyaml>=6.0
+Requires-Dist: starlette>=0.27.0
+Requires-Dist: uvicorn>=0.23.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0; extra == "dev"
 Requires-Dist: black>=23.0; extra == "dev"
@@ -24,11 +26,12 @@ Dynamic: license-file
 
 # MoveIt2 MCP Server
 
-Model Context Protocol (MCP) server for MoveIt2 motion planning, providing AI assistants with the ability to control and plan robot motions using the Panda robot arm.
+Model Context Protocol (MCP) server for MoveIt2 motion planning, providing AI assistants with the ability to control and plan robot motions (demo using the Panda robot arm).
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![ROS2](https://img.shields.io/badge/ROS2-Humble%20%7C%20Rolling-blue)](https://docs.ros.org/)
+[![License: Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
+[![ROS2](https://img.shields.io/badge/ROS2-Jazzy%20%7C%20Rolling-blue)](https://docs.ros.org/)
 [![MoveIt2](https://img.shields.io/badge/MoveIt2-Latest-green)](https://moveit.picknik.ai/)
+[![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white)](docs/DOCKER.md)
 
 ## Features
 
@@ -41,9 +44,9 @@ Model Context Protocol (MCP) server for MoveIt2 motion planning, providing AI as
 
 ## Quick Links
 
-- 📚 [Quick Start Guide](docs/QUICKSTART.md) - Get up and running in minutes
+- 📚 [Quick Start Guide](QUICKSTART.md) - Get up and running in minutes
+- 🐳 [Docker Guide](docs/DOCKER.md) - Run in Docker container
 - 🏗️ [Architecture Documentation](docs/ARCHITECTURE.md) - Understand the system design
-- 🔧 [Tools Reference](docs/TOOLS_REFERENCE.md) - Complete API documentation
 - 🤝 [Contributing Guide](CONTRIBUTING.md) - Help improve the project
 
 ## Architecture
@@ -56,25 +59,43 @@ The server maintains a stateful connection to MoveIt2, with async operation trac
 
 ## Prerequisites
 
-- **ROS2**: Humble or Rolling
+- **ROS2**: Rolling (recommended)
 - **MoveIt2**: Installed with Python bindings (`moveit_py`)
 - **Panda MoveIt Config**: `moveit_resources_panda_moveit_config` or equivalent
 - **Python**: 3.10 or higher
 
+**Note:** Rolling is recommended and fully tested via Docker. Jazzy has some known controller spawner issues (see [KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)).
+
 ## Installation
 
-### Quick Install
+### Option 1: Docker (Recommended for Quick Start) 🐳
 
 ```bash
 # Clone repository
 git clone <repository-url>
-cd moveit2-mcp-server
+cd moveit-mcp-server
+
+# Build and run with docker-compose
+docker-compose build
+xhost +local:docker
+docker-compose up
+```
+
+See [docs/DOCKER.md](docs/DOCKER.md) for complete Docker instructions.
+
+### Option 2: Native Install
+
+**Quick Install:**
+
+```bash
+# Clone repository
+cd moveit-mcp-server
 
 # Run setup script
 ./scripts/setup_environment.sh
 ```
 
-### Manual Install
+**Manual Install:**
 
 1. **Install ROS2 and MoveIt2**
 
@@ -86,28 +107,33 @@ cd moveit2-mcp-server
    pip install -e .
    ```
 
-See [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions.
+See [QUICKSTART.md](QUICKSTART.md) for detailed instructions.
 
 ## Usage
 
 ### 1. Launch MoveIt Demo (Terminal 1)
 
+Enter the container if needed:
+
 ```bash
-source /opt/ros/humble/setup.bash
+# Allow X11 forwarding for GUI
+xhost +local:docker
+docker exec -it moveit-mcp-server bash
+```
+
+```bash
 ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 ```
 
 ### 2. Run MCP Server (Terminal 2)
 
 ```bash
-source /opt/ros/humble/setup.bash
-moveit-mcp-server
+moveit-mcp-server-wrapper --transport sse --port 8000 
 ```
+or directly with docker
 
-### 3. Test with Example Client (Terminal 3)
-
-```bash
-python examples/test_client.py
+```
+docker exec -it moveit-mcp-server bash -c "moveit-mcp-server-wrapper --transport sse --port 8000"
 ```
 
 ### Using with Claude Desktop
@@ -117,10 +143,9 @@ Add to your Claude Desktop configuration:
 ```json
 {
   "mcpServers": {
-    "moveit2": {
-      "command": "/bin/bash",
-      "args": ["-c", "source /opt/ros/humble/setup.bash && moveit-mcp-server"],
-      "env": {"ROS_DOMAIN_ID": "0"}
+    "moveit-mcp-server": {
+      "type": "sse",
+      "url": "http://localhost:8000/sse"
     }
   }
 }
@@ -128,7 +153,7 @@ Add to your Claude Desktop configuration:
 
 **Note:** Make sure MoveIt is running before starting Claude Desktop.
 
-See [QUICKSTART.md](docs/QUICKSTART.md) for complete usage guide.
+See [QUICKSTART.md](QUICKSTART.md) and [docs/CLAUDE_CODE_SETUP.md](docs/CLAUDE_CODE_SETUP.md) for complete usage guides.
 
 ## Available Tools
 
@@ -140,7 +165,7 @@ The server provides 20+ MCP tools organized into categories:
 - **Query Tools** (5): Get robot state, compute kinematics, list configurations
 - **Utility Tools** (2): List groups and planners
 
-See [TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md) for complete API documentation.
+For detailed tool documentation, see the docstrings in the source code under `src/moveit_mcp/tools/`.
 
 ## Resources
 
@@ -192,7 +217,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-MIT
+Apache 2.0
 
 ## Contributing
 

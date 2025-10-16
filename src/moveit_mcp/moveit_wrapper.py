@@ -87,15 +87,15 @@ class MoveItWrapper:
         self.config = config
         self.node_name = config.get("mcp_server", {}).get("node_name", "moveit_mcp_server")
 
-        # Initialize ROS 2 if not already initialized
-        if not rclpy.ok():
-            logger.info("Initializing ROS 2 context")
-            rclpy.init()
-
         # Get robot configuration
         robot_config = config.get("robot", {})
         robot_name = robot_config.get("name", "panda")
         description_package = robot_config.get("description_package", "moveit_resources_panda_moveit_config")
+
+        # Initialize ROS 2 if not already initialized
+        if not rclpy.ok():
+            logger.info("Initializing ROS 2 context")
+            rclpy.init()
 
         # Build MoveIt configuration using MoveItConfigsBuilder (same as demo.launch.py)
         logger.info(f"Building MoveIt configuration for {robot_name}")
@@ -105,7 +105,9 @@ class MoveItWrapper:
             moveit_cpp_yaml_path = None
 
             # First check our own package
+            # Try robot-specific config first, then fallback to generic
             search_paths = [
+                os.path.join(os.path.dirname(__file__), "..", "..", "config", f"{robot_name}_moveit_py.yaml"),
                 os.path.join(os.path.dirname(__file__), "..", "..", "config", "moveit_py.yaml"),
                 "/workspace/moveit2-mcp-server/config/moveit_py.yaml",
             ]
@@ -127,7 +129,10 @@ class MoveItWrapper:
             if not moveit_cpp_yaml_path:
                 logger.warning("No moveit_py.yaml config found, using defaults")
 
-            builder = MoveItConfigsBuilder(f"moveit_resources_{robot_name}", package_name=description_package)
+            # Build MoveIt configuration
+            # For standard moveit_resources packages, use moveit_resources_{robot_name}
+            # For custom packages, the robot_name and package_name are separate
+            builder = MoveItConfigsBuilder(robot_name, package_name=description_package)
             builder = builder.robot_description(file_path=f"config/{robot_name}.urdf.xacro")
             builder = builder.robot_description_semantic(file_path=f"config/{robot_name}.srdf")
             builder = builder.trajectory_execution(file_path="config/moveit_controllers.yaml")
@@ -154,11 +159,33 @@ class MoveItWrapper:
             # Convert config to dictionary and pass as node parameters
             config_dict = moveit_config.to_dict()
 
+            # Add use_sim_time parameter if configured
+            use_sim_time = self.config.get("mcp_server", {}).get("use_sim_time", False)
+            if use_sim_time:
+                logger.info("Configuring MoveItPy to use simulation time")
+                config_dict['use_sim_time'] = True
+
+                # Workaround for MoveItPy bug in Jazzy with use_sim_time
+                # Set QoS overrides to prevent crash
+                # See: https://github.com/moveit/moveit2/issues/2690
+                logger.info("Applying QoS overrides workaround for /clock topic")
+                config_dict['qos_overrides'] = {
+                    '/clock': {
+                        'subscription': {
+                            'depth': 1,
+                            'history': 'keep_last',
+                            'durability': 'volatile',
+                            'reliability': 'best_effort'
+                        }
+                    }
+                }
+
             # Debug: Print config keys to see what we have
             logger.debug(f"MoveIt config keys: {list(config_dict.keys())}")
             if 'planning_pipelines' in config_dict:
                 logger.debug(f"Planning pipelines config: {config_dict['planning_pipelines']}")
 
+            # Create MoveItPy without namespace (namespace support is buggy in Jazzy)
             self.moveit = MoveItPy(node_name=self.node_name, config_dict=config_dict)
         except RuntimeError as e:
             logger.error(f"Failed to initialize MoveItPy: {e}")
