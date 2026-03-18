@@ -15,7 +15,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${HOME}/.Xauthority:/root/.Xauthority:rw
-      - ./config:/workspace/moveit2-mcp-server/config:ro
+      - ./config:/workspace/moveit-mcp-server/config:ro
     # Uncomment for NVIDIA GPU support
     # runtime: nvidia
     # environment:

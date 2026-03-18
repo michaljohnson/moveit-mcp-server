@@ -56,7 +56,10 @@ ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 # Exec into running container
 docker exec -it moveit-mcp-server bash
 
-# Start MCP server with HTTP/SSE
+# Start MCP server with Streamable HTTP (recommended)
+moveit-mcp-server-wrapper --transport http --port 8001
+
+# Or with legacy SSE
 moveit-mcp-server-wrapper --transport sse --port 8000
 ```
 

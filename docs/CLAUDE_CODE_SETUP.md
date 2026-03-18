@@ -2,7 +2,11 @@
 
 ## Overview
 
-Since the MCP server runs in a Docker container, we need to use **HTTP/SSE transport** instead of stdio. This allows Claude Code to connect to the server over the network.
+Since the MCP server runs in a Docker container, we need to use an HTTP-based transport instead of stdio. This allows Claude Code to connect to the server over the network.
+
+Two HTTP transports are available:
+- **`http`** — Streamable HTTP (MCP spec 2025-03-26, **recommended**)
+- **`sse`** — Legacy HTTP/SSE (older MCP clients)
 
 ## Setup Steps
 
@@ -22,43 +26,52 @@ ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 
 Wait for RViz to appear and the robot to be visible.
 
-### 3. Start the MCP Server with SSE Transport
+### 3. Start the MCP Server
 
-**Terminal 2: In a new terminal, exec into the running container**
+**Terminal 2: Exec into the running container**
 ```bash
-# Find the container ID
-docker ps
-
-# Exec into the container (use the container name)
 docker exec -it moveit-mcp-server bash
 
-# Start MCP server with SSE transport
+# Streamable HTTP transport (recommended)
+moveit-mcp-server-wrapper --transport http --port 8001
+
+# Or legacy SSE transport
 moveit-mcp-server-wrapper --transport sse --port 8000
 ```
 
 You should see:
 ```
-INFO - Starting MCP server with SSE transport on 0.0.0.0:8000
+INFO - Starting MCP server with Streamable HTTP transport on 0.0.0.0:8001
 INFO - MoveItWrapper initialized successfully
-INFO - Uvicorn running on http://0.0.0.0:8000
+INFO - Uvicorn running on http://0.0.0.0:8001
 ```
 
 ### 4. Configure Claude Code
-
-Add the following to your Claude Code MCP settings:
 
 **Option A: Via Claude Code Settings UI**
 1. Open Claude Code settings
 2. Navigate to MCP Servers
 3. Add a new server with:
    - **Name**: `moveit-mcp-server`
-   - **Type**: `sse`
-   - **URL**: `http://localhost:8000/sse`
+   - **Type**: `http`
+   - **URL**: `http://localhost:8001/mcp`
 
 **Option B: Via Configuration File**
 
 Edit your MCP configuration file (usually `~/.config/claude/mcp_settings.json` or similar):
 
+```json
+{
+  "mcpServers": {
+    "moveit-mcp-server": {
+      "type": "http",
+      "url": "http://localhost:8001/mcp"
+    }
+  }
+}
+```
+
+For legacy SSE clients:
 ```json
 {
   "mcpServers": {
@@ -85,11 +98,11 @@ The MCP server supports the following options:
 moveit-mcp-server-wrapper --help
 
 Options:
-  --transport, -t {stdio,sse}  Transport type (default: stdio)
-  --host HOST                  Host to bind to for SSE (default: 0.0.0.0)
-  --port, -p PORT              Port for SSE transport (default: 8000)
-  --config, -c CONFIG          Path to config file
-  --log-level LEVEL            Log level (DEBUG, INFO, WARNING, ERROR)
+  --transport, -t {stdio,sse,http}  Transport type (default: stdio)
+  --host HOST                       Host to bind to for HTTP/SSE (default: 0.0.0.0)
+  --port, -p PORT                   Port for HTTP/SSE transport (default: 8000)
+  --config, -c CONFIG               Path to config file
+  --log-level LEVEL                 Log level (DEBUG, INFO, WARNING, ERROR)
 ```
 
 ### Examples:
@@ -99,14 +112,19 @@ Options:
 moveit-mcp-server-wrapper
 ```
 
-**Run with SSE on custom port:**
+**Run with Streamable HTTP (recommended for remote/container use):**
 ```bash
-moveit-mcp-server-wrapper --transport sse --port 8080
+moveit-mcp-server-wrapper --transport http --port 8001
+```
+
+**Run with legacy SSE:**
+```bash
+moveit-mcp-server-wrapper --transport sse --port 8000
 ```
 
 **Run with debug logging:**
 ```bash
-moveit-mcp-server-wrapper --transport sse --log-level DEBUG
+moveit-mcp-server-wrapper --transport http --log-level DEBUG
 ```
 
 ## Architecture
@@ -119,14 +137,14 @@ moveit-mcp-server-wrapper --transport sse --log-level DEBUG
 │  │ Panda Demo   │         │   MCP Server        │      │
 │  │              │         │                     │      │
 │  │ - RViz       │◄───────►│ - MoveItPy         │      │
-│  │ - move_group │ ROS 2   │ - HTTP/SSE Server  │      │
-│  │ - controllers│ Topics  │   (port 8000)      │      │
+│  │ - move_group │ ROS 2   │ - HTTP Server      │      │
+│  │ - controllers│ Topics  │   (port 8001)      │      │
 │  └──────────────┘         └─────────────────────┘      │
 │                                    │                    │
-│                                    │ HTTP/SSE           │
+│                                    │ Streamable HTTP    │
 └────────────────────────────────────┼────────────────────┘
                                      │
-                                     │ http://localhost:8000/sse
+                                     │ http://localhost:8001/mcp
                                      ↓
                            ┌──────────────────┐
                            │   Claude Code    │
@@ -141,12 +159,12 @@ moveit-mcp-server-wrapper --transport sse --log-level DEBUG
 
 1. Verify the server is running:
    ```bash
-   curl http://localhost:8000/sse
+   curl http://localhost:8001/
    ```
 
 2. Check if the port is exposed:
    ```bash
-   docker ps  # Should show 0.0.0.0:8000->8000/tcp
+   docker ps  # Should show 0.0.0.0:8001->8001/tcp
    ```
 
 3. Since we use `network_mode: host`, the port should be directly accessible

@@ -14,6 +14,7 @@ try:
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
     from mcp.server.sse import SseServerTransport
+    from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
     from starlette.applications import Starlette
     from starlette.routing import Route, Mount
     from starlette.responses import Response
@@ -188,7 +189,7 @@ class MoveItMCPServer:
         Run the MCP server.
 
         Args:
-            transport: Transport type - "stdio" or "sse" (default: "stdio")
+            transport: Transport type - "stdio", "sse", or "http" (default: "stdio")
             host: Host to bind to when using SSE transport (default: "0.0.0.0")
             port: Port to bind to when using SSE transport (default: 8000)
         """
@@ -290,6 +291,78 @@ class MoveItMCPServer:
                 server = uvicorn.Server(config)
                 await server.serve()
 
+            elif transport == "http":
+                # Run the server with Streamable HTTP transport (MCP spec 2025-03-26)
+                logger.info(f"Starting MCP server with Streamable HTTP transport on {host}:{port}")
+
+                import contextlib
+                from starlette.responses import JSONResponse
+
+                session_manager = StreamableHTTPSessionManager(
+                    app=self.server,
+                    event_store=None,
+                    json_response=False,
+                    stateless=False,
+                )
+
+                async def handle_root(request):
+                    return JSONResponse({
+                        "name": "moveit-mcp-server",
+                        "version": "0.1.0",
+                        "status": "ok",
+                        "transport": "http",
+                        "capabilities": {
+                            "tools": True,
+                            "resources": True,
+                            "prompts": True
+                        },
+                        "endpoints": {
+                            "mcp": "/mcp"
+                        }
+                    }, status_code=200)
+
+                async def handle_mcp(scope, receive, send):
+                    await session_manager.handle_request(scope, receive, send)
+
+                class ASGIWrapper:
+                    def __init__(self, asgi_app):
+                        self.asgi_app = asgi_app
+
+                    async def __call__(self, scope_or_request, receive=None, send=None):
+                        if receive is None and send is None:
+                            request = scope_or_request
+                            await self.asgi_app(request.scope, request.receive, request._send)
+                            class AlreadySentResponse(Response):
+                                async def __call__(self, scope, receive, send):
+                                    pass
+                            return AlreadySentResponse()
+                        else:
+                            await self.asgi_app(scope_or_request, receive, send)
+
+                @contextlib.asynccontextmanager
+                async def lifespan(app):
+                    async with session_manager.run():
+                        yield
+
+                app = Starlette(
+                    lifespan=lifespan,
+                    routes=[
+                        Route("/", endpoint=handle_root, methods=["GET"]),
+                        Route("/mcp", endpoint=ASGIWrapper(handle_mcp), methods=["GET", "POST", "DELETE"]),
+                    ],
+                )
+
+                import uvicorn
+                config = uvicorn.Config(
+                    app,
+                    host=host,
+                    port=port,
+                    log_level="info",
+                    timeout_graceful_shutdown=5,
+                )
+                server = uvicorn.Server(config)
+                await server.serve()
+
             else:
                 raise ValueError(f"Unknown transport type: {transport}")
 
@@ -323,9 +396,9 @@ def main():
         "--transport",
         "-t",
         type=str,
-        choices=["stdio", "sse"],
+        choices=["stdio", "sse", "http"],
         default="stdio",
-        help="Transport type: stdio (local) or sse (HTTP/container) (default: stdio)",
+        help="Transport type: stdio (local), sse (legacy HTTP), or http (Streamable HTTP, MCP 2025-03-26) (default: stdio)",
     )
     parser.add_argument(
         "--host",

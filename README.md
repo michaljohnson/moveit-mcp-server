@@ -17,7 +17,7 @@ Model Context Protocol (MCP) server for MoveIt2 motion planning, providing AI as
 - **State Queries**: Get current robot state, compute FK/IK, check collisions
 - **Resource Providers**: Real-time robot state and planning scene information
 - **Multi-Robot Support**: Configuration-driven support for any MoveIt2-compatible robot
-- **Dual Transport**: stdio (local) and SSE/HTTP (remote/container) modes
+- **Multi Transport**: stdio (local), SSE/HTTP (legacy), and Streamable HTTP (MCP 2025-03-26) modes
 
 ## Supported Robots
 
@@ -71,7 +71,7 @@ docker-compose up
 
 See [docs/DOCKER.md](docs/DOCKER.md) for complete Docker instructions.
 
-### Option 2: Native Install
+### Option 2: Native Install in ROS environment
 
 ```bash
 cd moveit-mcp-server
@@ -102,12 +102,15 @@ ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 # stdio transport (for local MCP clients)
 moveit-mcp-server --config config/panda_mcp_server.yaml
 
-# SSE transport (for remote clients / Claude Desktop)
+# Streamable HTTP transport (recommended for remote clients / Claude Desktop)
+moveit-mcp-server --config config/panda_mcp_server.yaml --transport http --port 8001
+
+# SSE transport (legacy, for older MCP clients)
 moveit-mcp-server --config config/panda_mcp_server.yaml --transport sse --port 8000
 
 # Or via Docker
 docker exec -it moveit-mcp-server bash -c \
-  "moveit-mcp-server --config config/panda_mcp_server.yaml --transport sse --port 8000"
+  "moveit-mcp-server-wrapper --config config/panda_mcp_server.yaml --transport http --port 8001"
 ```
 
 ### Summit XL Mobile Manipulator
@@ -125,8 +128,8 @@ ros2 launch icclab_summit_xl_move_it_config demo.launch.py
 # stdio transport
 moveit-mcp-server --config config/summit_xl_mcp_server.yaml
 
-# SSE transport
-moveit-mcp-server --config config/summit_xl_mcp_server.yaml --transport sse --port 8000
+# Streamable HTTP transport
+moveit-mcp-server --config config/summit_xl_mcp_server.yaml --transport http --port 8001
 ```
 
 > **Note:** Summit XL uses `use_sim_time: true` for Gazebo simulation. Ensure your simulation is publishing `/clock`.
@@ -139,12 +142,14 @@ Add to your Claude Desktop configuration (`~/.config/claude/claude_desktop_confi
 {
   "mcpServers": {
     "moveit": {
-      "type": "sse",
-      "url": "http://localhost:8000/sse"
+      "type": "http",
+      "url": "http://localhost:8001/mcp"
     }
   }
 }
 ```
+
+> **Legacy SSE clients**: use `"type": "sse"` with `"url": "http://localhost:8000/sse"` and `--transport sse`.
 
 Make sure MoveIt is running before starting Claude Desktop. See [docs/CLAUDE_CODE_SETUP.md](docs/CLAUDE_CODE_SETUP.md) for more details.
 

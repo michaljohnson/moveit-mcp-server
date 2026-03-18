@@ -17,8 +17,8 @@ RUN apt-get install -y python3-pip python3-venv && \
 WORKDIR /workspace
 
 # Create a virtual environment for the MCP server with system site packages
-RUN python3 -m venv --system-site-packages /opt/mcp-venv
 ENV VIRTUAL_ENV=/opt/mcp-venv
+RUN python3 -m venv --system-site-packages ${VIRTUAL_ENV}
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Upgrade pip inside the venv
@@ -54,7 +54,7 @@ source /opt/ros/${ROS_DISTRO}/setup.bash\n\
 if [ -f ~/ws_moveit/install/setup.bash ]; then\n\
     source ~/ws_moveit/install/setup.bash\n\
 fi\n\
-source /opt/mcp-venv/bin/activate\n\
+source ${VIRTUAL_ENV}/bin/activate\n\
 exec moveit-mcp-server "$@"' > /usr/local/bin/moveit-mcp-server-wrapper && \
     chmod +x /usr/local/bin/moveit-mcp-server-wrapper
 
