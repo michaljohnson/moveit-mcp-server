@@ -1,2 +1,0 @@
-[console_scripts]
-moveit-mcp-server = moveit_mcp.server:main

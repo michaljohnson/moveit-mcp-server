@@ -1,7 +1,9 @@
 """MoveItPy wrapper for stateful robot control and planning."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import yaml
 
@@ -20,6 +22,10 @@ try:
     MOVEIT_AVAILABLE = True
 except ImportError:
     MOVEIT_AVAILABLE = False
+    # Create placeholder types for type hints
+    if TYPE_CHECKING:
+        import numpy as np
+        from geometry_msgs.msg import Pose
     logger = logging.getLogger(__name__)
     logger.warning("MoveIt Python bindings not available. Running in mock mode.")
 
@@ -27,7 +33,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def transform_matrix_to_pose(transform: np.ndarray) -> Pose:
+def transform_matrix_to_pose(transform: "np.ndarray") -> "Pose":
     """
     Convert a 4x4 transformation matrix to a Pose message.
 

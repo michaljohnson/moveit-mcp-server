@@ -25,6 +25,7 @@ except ImportError as e:
 from .async_ops import AsyncOperationManager
 from .moveit_wrapper import MoveItWrapper
 from .resources import register_resources
+from .prompts import register_prompts
 from .tools.registry import ToolRegistry
 from .tools.planning import get_planning_tools
 from .tools.execution import get_execution_tools
@@ -157,6 +158,10 @@ class MoveItMCPServer:
             logger.info("Registering MCP resources...")
             register_resources(self.server, self.moveit, self.op_manager)
 
+            # Register prompts
+            logger.info("Registering MCP prompts...")
+            register_prompts(self.server)
+
             # Mark as initialized
             self._initialized = True
 
@@ -219,7 +224,7 @@ class MoveItMCPServer:
                         "capabilities": {
                             "tools": True,
                             "resources": True,
-                            "prompts": False
+                            "prompts": True
                         },
                         "endpoints": {
                             "sse": "/sse",

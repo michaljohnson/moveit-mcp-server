@@ -1,55 +1,69 @@
 # MoveIt2 MCP Server
 
-Model Context Protocol (MCP) server for MoveIt2 motion planning, providing AI assistants with the ability to control and plan robot motions (demo using the Panda robot arm).
+Model Context Protocol (MCP) server for MoveIt2 motion planning, providing AI assistants with the ability to control and plan robot motions.
 
-[![License: Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![ROS2](https://img.shields.io/badge/ROS2-Jazzy%20%7C%20Rolling-blue)](https://docs.ros.org/)
 [![MoveIt2](https://img.shields.io/badge/MoveIt2-Latest-green)](https://moveit.picknik.ai/)
 [![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white)](docs/DOCKER.md)
 
 ## Features
 
-- **Async Stateful Server**: Efficient non-blocking operations with persistent MoveIt2 state
+- **Full MCP Protocol Support**: Tools, Resources, and Prompts
+- **Async Stateful Server**: Non-blocking operations with persistent MoveIt2 state
 - **Motion Planning**: Plan to Cartesian poses, joint states, and named configurations
 - **Execution Control**: Execute planned trajectories with progress monitoring
 - **Planning Scene Management**: Add/remove collision objects dynamically
 - **State Queries**: Get current robot state, compute FK/IK, check collisions
 - **Resource Providers**: Real-time robot state and planning scene information
+- **Multi-Robot Support**: Configuration-driven support for any MoveIt2-compatible robot
+- **Dual Transport**: stdio (local) and SSE/HTTP (remote/container) modes
+
+## Supported Robots
+
+| Robot | Config File | Planning Groups | Description |
+|-------|-------------|-----------------|-------------|
+| **Franka Emika Panda** | `config/panda_mcp_server.yaml` | `panda_arm`, `panda_hand` | 7-DOF robot arm (default) |
+| **Summit XL** | `config/summit_xl_mcp_server.yaml` | `arm`, `gripper` | Mobile manipulator with arm |
+
+Any robot with a MoveIt2 configuration package can be added via a YAML config file.
 
 ## Quick Links
 
-- 📚 [Quick Start Guide](QUICKSTART.md) - Get up and running in minutes
-- 🐳 [Docker Guide](docs/DOCKER.md) - Run in Docker container
-- 🏗️ [Architecture Documentation](docs/ARCHITECTURE.md) - Understand the system design
-- 🤝 [Contributing Guide](CONTRIBUTING.md) - Help improve the project
+- [Quick Start Guide](QUICKSTART.md) - Get up and running in minutes
+- [Docker Guide](docs/DOCKER.md) - Run in Docker container
+- [Architecture Documentation](docs/ARCHITECTURE.md) - Understand the system design
+- [Contributing Guide](CONTRIBUTING.md) - Help improve the project
 
 ## Architecture
 
 ```
-AI Client (Claude) ↔ MCP Server ↔ moveit_py ↔ MoveIt2 Core ↔ ROS2
+AI Client (Claude) <-> MCP Server <-> moveit_py <-> MoveIt2 Core <-> ROS2
+                        |
+                        +-- Tools (19)     - Motion planning, execution, scene, queries
+                        +-- Resources (4)  - Real-time robot state
+                        +-- Prompts (5)    - Guided workflows for common tasks
 ```
 
 The server maintains a stateful connection to MoveIt2, with async operation tracking for long-running planning and execution tasks. See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Prerequisites
 
-- **ROS2**: Rolling (recommended)
+- **ROS2**: Rolling (recommended) or Jazzy
 - **MoveIt2**: Installed with Python bindings (`moveit_py`)
-- **Panda MoveIt Config**: `moveit_resources_panda_moveit_config` or equivalent
+- **Robot MoveIt Config**: e.g., `moveit_resources_panda_moveit_config`
 - **Python**: 3.10 or higher
 
-**Note:** Rolling is recommended and fully tested via Docker. Jazzy has some known controller spawner issues (see [KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)).
+> **Note:** Rolling is recommended and fully tested via Docker. Jazzy has some known controller spawner issues (see [KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)).
 
 ## Installation
 
-### Option 1: Docker (Recommended for Quick Start) 🐳
+### Option 1: Docker (Recommended)
 
 ```bash
-# Clone repository
 git clone <repository-url>
 cd moveit-mcp-server
 
-# Build and run with docker-compose
 docker-compose build
 xhost +local:docker
 docker-compose up
@@ -59,65 +73,72 @@ See [docs/DOCKER.md](docs/DOCKER.md) for complete Docker instructions.
 
 ### Option 2: Native Install
 
-**Quick Install:**
-
 ```bash
-# Clone repository
 cd moveit-mcp-server
+pip install -e ".[dev]"
 
-# Run setup script
+# Or use setup script
 ./scripts/setup_environment.sh
 ```
 
-**Manual Install:**
-
-1. **Install ROS2 and MoveIt2**
-
-   Follow the [official MoveIt2 installation guide](https://moveit.picknik.ai/main/doc/tutorials/getting_started/getting_started.html).
-
-2. **Install the MCP Server**
-
-   ```bash
-   pip install -e .
-   ```
-
-See [QUICKSTART.md](QUICKSTART.md) for detailed instructions.
-
 ## Usage
 
-### 1. Launch MoveIt Demo (Terminal 1)
+### Panda Robot Arm
 
-Enter the container if needed:
+#### Terminal 1: Launch MoveIt Demo
 
 ```bash
-# Allow X11 forwarding for GUI
+# If using Docker:
 xhost +local:docker
 docker exec -it moveit-mcp-server bash
-```
 
-```bash
+# Launch the Panda demo
 ros2 launch moveit_resources_panda_moveit_config demo.launch.py
 ```
 
-### 2. Run MCP Server (Terminal 2)
+#### Terminal 2: Start MCP Server
 
 ```bash
-moveit-mcp-server-wrapper --transport sse --port 8000 
-```
-or directly with docker
+# stdio transport (for local MCP clients)
+moveit-mcp-server --config config/panda_mcp_server.yaml
 
-```
-docker exec -it moveit-mcp-server bash -c "moveit-mcp-server-wrapper --transport sse --port 8000"
+# SSE transport (for remote clients / Claude Desktop)
+moveit-mcp-server --config config/panda_mcp_server.yaml --transport sse --port 8000
+
+# Or via Docker
+docker exec -it moveit-mcp-server bash -c \
+  "moveit-mcp-server --config config/panda_mcp_server.yaml --transport sse --port 8000"
 ```
 
-### Using with Claude Desktop
+### Summit XL Mobile Manipulator
 
-Add to your Claude Desktop configuration:
+#### Terminal 1: Launch Summit XL MoveIt
+
+```bash
+# Launch the Summit XL MoveIt demo (requires icclab_summit_xl_move_it_config)
+ros2 launch icclab_summit_xl_move_it_config demo.launch.py
+```
+
+#### Terminal 2: Start MCP Server
+
+```bash
+# stdio transport
+moveit-mcp-server --config config/summit_xl_mcp_server.yaml
+
+# SSE transport
+moveit-mcp-server --config config/summit_xl_mcp_server.yaml --transport sse --port 8000
+```
+
+> **Note:** Summit XL uses `use_sim_time: true` for Gazebo simulation. Ensure your simulation is publishing `/clock`.
+
+### Connecting Claude Desktop
+
+Add to your Claude Desktop configuration (`~/.config/claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "moveit-mcp-server": {
+    "moveit": {
       "type": "sse",
       "url": "http://localhost:8000/sse"
     }
@@ -125,51 +146,99 @@ Add to your Claude Desktop configuration:
 }
 ```
 
-**Note:** Make sure MoveIt is running before starting Claude Desktop.
+Make sure MoveIt is running before starting Claude Desktop. See [docs/CLAUDE_CODE_SETUP.md](docs/CLAUDE_CODE_SETUP.md) for more details.
 
-See [QUICKSTART.md](QUICKSTART.md) and [docs/CLAUDE_CODE_SETUP.md](docs/CLAUDE_CODE_SETUP.md) for complete usage guides.
+## MCP Protocol Support
 
-## Available Tools
+### Tools (19)
 
-The server provides 20+ MCP tools organized into categories:
+| Category | Tool | Description |
+|----------|------|-------------|
+| **Planning** | `plan_to_pose` | Plan motion to a Cartesian pose (position + orientation) |
+| | `plan_to_joint_state` | Plan motion to target joint positions (radians) |
+| | `plan_to_named_state` | Plan motion to a named state (e.g., "ready", "home") |
+| | `get_plan_result` | Check planning operation status and result |
+| **Execution** | `execute_plan` | Execute a planned trajectory |
+| | `get_execution_status` | Monitor execution progress |
+| | `stop_execution` | Cancel an ongoing execution |
+| | `plan_and_execute` | Combined plan + execute in one call |
+| **Scene** | `add_collision_box` | Add a box obstacle to the planning scene |
+| | `add_collision_sphere` | Add a sphere obstacle to the planning scene |
+| | `remove_collision_object` | Remove a specific collision object |
+| | `clear_planning_scene` | Remove all collision objects |
+| | `list_collision_objects` | List all collision objects in the scene |
+| | `check_state_collision` | Check if a joint state would collide |
+| **Queries** | `get_current_joint_state` | Get current joint positions for a group |
+| | `get_current_pose` | Get current end-effector pose |
+| | `compute_fk` | Compute forward kinematics |
+| | `compute_ik` | Compute inverse kinematics |
+| | `list_planning_groups` | List available planning groups |
 
-- **Planning Tools** (4): Plan motions to poses, joint states, or named configurations
-- **Execution Tools** (4): Execute trajectories with async monitoring and control
-- **Planning Scene Tools** (6): Manage collision objects in the environment
-- **Query Tools** (5): Get robot state, compute kinematics, list configurations
-- **Utility Tools** (2): List groups and planners
+### Resources (4)
 
-For detailed tool documentation, see the docstrings in the source code under `src/moveit_mcp/tools/`.
+| URI | Description |
+|-----|-------------|
+| `moveit://planning_groups` | Available robot planning groups |
+| `moveit://joint_states/{group}` | Current joint positions for a group |
+| `moveit://planning_scene` | Collision objects in the scene |
+| `moveit://active_operations` | Running async operations |
 
-## Resources
+### Prompts (5)
 
-MCP resources provide real-time information:
+| Prompt | Description |
+|--------|-------------|
+| `move_robot_to_pose` | Guided workflow: move robot to a target pose |
+| `pick_and_place` | Guided workflow: pick and place an object |
+| `inspect_robot_state` | Guided workflow: inspect current robot state |
+| `setup_collision_scene` | Guided workflow: add collision objects to scene |
+| `plan_cartesian_path` | Guided workflow: plan a multi-waypoint path |
 
-- `moveit://planning_groups`: Available robot groups
-- `moveit://joint_states/{group}`: Current joint positions
-- `moveit://planning_scene`: Collision objects
-- `moveit://active_operations`: Running async operations
+## Example Interactions
 
-Resources update dynamically and can be queried at any time.
+### Panda Arm
 
-## Example Usage with Claude
+```
+User: "What planning groups are available?"
+Claude: Uses list_planning_groups -> "panda_arm", "panda_hand"
 
-Once configured, you can interact with MoveIt2 through natural language:
+User: "Move the panda arm to the ready position"
+Claude: Uses plan_to_named_state(group="panda_arm", state_name="ready")
+        Then execute_plan -> Robot moves to ready position
 
-**User:** "What planning groups are available?"
-**Claude:** Uses `list_planning_groups` → Shows "panda_arm" and "panda_hand"
+User: "What's the current end-effector position?"
+Claude: Uses get_current_pose(group="panda_arm")
+        -> Position: x=0.307, y=0.000, z=0.590 | Orientation: ...
 
-**User:** "Get the current joint state of the panda arm"
-**Claude:** Uses `get_current_joint_state` → Returns all joint angles
+User: "Add a table at (0.5, 0, 0.4) with size 0.8 x 1.2 x 0.05"
+Claude: Uses add_collision_box(object_id="table", position=[0.5,0,0.4],
+        dimensions=[0.8,1.2,0.05]) -> Table appears in RViz
 
-**User:** "Add a table obstacle at (0.5, 0, 0) with size 0.8m x 1.2m x 0.05m"
-**Claude:** Uses `add_collision_box` → Table appears in RViz
+User: "Can the arm reach position (0.3, 0.2, 0.5)?"
+Claude: Uses compute_ik(group="panda_arm", position=[0.3,0.2,0.5],
+        orientation=[0,1,0,0]) -> Returns joint solution or "not reachable"
+```
 
-**User:** "Plan a motion to the ready position"
-**Claude:** Uses `plan_to_named_state` + `get_plan_result` → Reports success/failure
+### Summit XL
 
-**User:** "Can you reach position (0.3, 0, 0.6)?"
-**Claude:** Uses `compute_ik` → Returns joint solution or "not reachable"
+```
+User: "List the planning groups for the Summit XL"
+Claude: Uses list_planning_groups -> "arm", "gripper"
+
+User: "Get the arm's current joint state"
+Claude: Uses get_current_joint_state(group="arm") -> Joint angles in radians
+
+User: "Plan the arm to its home position"
+Claude: Uses plan_to_named_state(group="arm", state_name="home")
+        Then execute_plan -> Arm moves to home
+
+User: "Open the gripper"
+Claude: Uses plan_to_named_state(group="gripper", state_name="open")
+        Then execute_plan -> Gripper opens
+
+User: "Add a box obstacle in front of the robot"
+Claude: Uses add_collision_box(object_id="obstacle", position=[0.5,0,0.3],
+        dimensions=[0.2,0.2,0.2]) -> Box appears in RViz
+```
 
 ## Development
 
@@ -177,21 +246,50 @@ Once configured, you can interact with MoveIt2 through natural language:
 # Install dev dependencies
 pip install -e ".[dev]"
 
+# Run tests
+pytest
+
+# Run tests with coverage
+pytest --cov=moveit_mcp --cov-report=term-missing
+
 # Format code
-black src/
+black src/ tests/
 
 # Lint code
-ruff check src/
+ruff check src/ tests/
 
-# Run example
-python examples/test_client.py
+# Run unit tests (no ROS required)
+pytest tests/ -v -m "not integration"
+
+# Run integration tests (requires ROS/MoveIt)
+source /opt/ros/$ROS_DISTRO/setup.bash
+ros2 launch moveit_resources_panda_moveit_config demo.launch.py  # Terminal 1
+pytest tests/integration/ -v  # Terminal 2
+
+# Run example clients
+python examples/panda_example.py
+python examples/summit_xl_example.py
 ```
+
+### Testing
+
+The project includes two test suites:
+
+**Unit Tests** (`tests/`) - No ROS required, uses mocking:
+- 71 tests covering all components
+- Run with: `pytest tests/ -v -m "not integration"`
+
+**Integration Tests** (`tests/integration/`) - Requires ROS/MoveIt:
+- Tests with real ROS2 and MoveIt2
+- Verifies actual robot planning and motion
+- See [tests/integration/README.md](tests/integration/README.md) for details
+- Run with: `pytest tests/integration/ -v`
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-Apache 2.0
+MIT License
 
 ## Contributing
 

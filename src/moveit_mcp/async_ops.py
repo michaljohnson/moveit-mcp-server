@@ -75,10 +75,11 @@ class AsyncOperationManager:
             except asyncio.CancelledError:
                 pass
 
-        # Cancel all running operations
+        # Cancel all running operations (inline to avoid lock reentrance)
         async with self._lock:
-            for operation_id in list(self.operations.keys()):
-                await self.cancel_operation(operation_id)
+            for operation_id, (task, info) in list(self.operations.items()):
+                if info.status not in [OperationStatus.COMPLETED, OperationStatus.FAILED]:
+                    task.cancel()
 
         logger.info("AsyncOperationManager stopped")
 
@@ -249,10 +250,18 @@ class AsyncOperationManager:
         """
         async with self._lock:
             result = []
-            for operation_id in self.operations:
-                status = await self.get_operation_status(operation_id)
-                if status:
-                    result.append(status)
+            for operation_id, (_, info) in self.operations.items():
+                result.append({
+                    "operation_id": info.operation_id,
+                    "type": info.operation_type.value,
+                    "status": info.status.value,
+                    "progress": info.progress,
+                    "created_at": info.created_at,
+                    "updated_at": info.updated_at,
+                    "result": info.result,
+                    "error": info.error,
+                    "metadata": info.metadata,
+                })
             return result
 
     async def _cleanup_loop(self):

@@ -5,21 +5,24 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "moveit-mcp-server"
 version = "0.1.0"
-description = "MCP Server for MoveIt2 motion planning with Panda robot arm"
+description = "MCP Server for MoveIt2 motion planning - control robots via the Model Context Protocol"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
     {name = "MoveIt MCP Contributors"}
 ]
-license = {text = "MIT"}
-keywords = ["mcp", "moveit2", "ros2", "robotics", "motion-planning"]
+license = {text = "Apache-2.0"}
+keywords = ["mcp", "moveit2", "ros2", "robotics", "motion-planning", "model-context-protocol"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Robotics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 dependencies = [
@@ -32,6 +35,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0",
     "black>=23.0",
     "ruff>=0.1.0",
 ]
@@ -41,6 +46,13 @@ moveit-mcp-server = "moveit_mcp.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "asyncio: mark test as async",
+]
 
 [tool.black]
 line-length = 100
