@@ -3,6 +3,11 @@
 
 set -e
 
+# Change to project root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 echo "=== MoveIt2 MCP Server Setup ==="
 echo
 
@@ -60,6 +65,51 @@ fi
 
 echo "✓ Python version: $PYTHON_VERSION"
 
+# Create virtual environment with system site packages access
+echo
+echo "Setting up Python virtual environment..."
+
+VENV_DIR="${VENV_DIR:-.venv}"
+
+if [ -d "$VENV_DIR" ] && [ ! -f "$VENV_DIR/bin/activate" ]; then
+    echo "⚠ Invalid virtual environment detected at $VENV_DIR"
+    echo "  Removing and recreating..."
+    rm -rf "$VENV_DIR"
+fi
+
+if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv "$VENV_DIR" --system-site-packages
+    if [ $? -eq 0 ]; then
+        echo "✓ Virtual environment created at $VENV_DIR"
+    else
+        echo "❌ Failed to create virtual environment"
+        exit 1
+    fi
+else
+    echo "✓ Virtual environment already exists at $VENV_DIR"
+fi
+
+# Activate virtual environment
+source "$VENV_DIR/bin/activate"
+if [ $? -eq 0 ]; then
+    echo "✓ Virtual environment activated"
+else
+    echo "❌ Failed to activate virtual environment"
+    exit 1
+fi
+
+# Upgrade pip, setuptools, and wheel
+echo
+echo "Upgrading pip, setuptools, and wheel..."
+python3 -m pip install --upgrade pip "setuptools<80" wheel --quiet
+
+if [ $? -eq 0 ]; then
+    echo "✓ pip, setuptools, and wheel upgraded"
+else
+    echo "❌ Failed to upgrade pip"
+    exit 1
+fi
+
 # Install Python dependencies
 echo
 echo "Installing Python dependencies..."
@@ -92,15 +142,21 @@ echo
 echo "=== Setup Complete ==="
 echo
 echo "Next steps:"
-echo "1. Start MoveIt demo:"
+echo "1. Activate the virtual environment (if not already activated):"
+echo "   source .venv/bin/activate"
+echo "   (or set VENV_DIR environment variable to use a different location)"
+echo
+echo "2. Start MoveIt demo:"
 echo "   source /opt/ros/$ROS_DISTRO/setup.bash"
 echo "   ros2 launch moveit_resources_panda_moveit_config demo.launch.py"
 echo
-echo "2. In another terminal, run the MCP server:"
+echo "3. In another terminal, run the MCP server:"
+echo "   source .venv/bin/activate"
 echo "   source /opt/ros/$ROS_DISTRO/setup.bash"
 echo "   moveit-mcp-server"
 echo
-echo "3. Test with the example client:"
+echo "4. Test with the example client:"
+echo "   source .venv/bin/activate"
 echo "   source /opt/ros/$ROS_DISTRO/setup.bash"
 echo "   python examples/test_client.py"
 echo

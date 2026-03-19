@@ -667,5 +667,4 @@ class MoveItWrapper:
             List of object IDs
         """
         with self.planning_scene_monitor.read_only() as scene:
-            world = scene.world
-            return world.get_object_ids()
+            return list(scene.get_known_object_names())

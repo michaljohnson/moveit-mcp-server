@@ -49,12 +49,12 @@ The server maintains a stateful connection to MoveIt2, with async operation trac
 
 ## Prerequisites
 
-- **ROS2**: Rolling (recommended) or Jazzy
+- **ROS2**: Rolling (recommended for panda)  or Jazzy
 - **MoveIt2**: Installed with Python bindings (`moveit_py`)
-- **Robot MoveIt Config**: e.g., `moveit_resources_panda_moveit_config`
+- **Robot MoveIt Config**: for your robot e.g., `moveit_resources_panda_moveit_config`
 - **Python**: 3.10 or higher
 
-> **Note:** Rolling is recommended and fully tested via Docker. Jazzy has some known controller spawner issues (see [KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)).
+> **Note:** Rolling is fully tested for the Panda arm via Docker. On Jazzy the Panda demo has some known controller spawner issues (see [KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)).
 
 ## Installation
 
@@ -115,11 +115,17 @@ docker exec -it moveit-mcp-server bash -c \
 
 ### Summit XL Mobile Manipulator
 
+You can find source code here: https://github.com/icclab/icclab_summit_xl
+And a running container image here: ``docker pull robopaas/rosdocked-jazzy-cpu:latest``
+
+Install the moveit-mcp-server, then:
+
 #### Terminal 1: Launch Summit XL MoveIt
 
 ```bash
-# Launch the Summit XL MoveIt demo (requires icclab_summit_xl_move_it_config)
-ros2 launch icclab_summit_xl_move_it_config demo.launch.py
+# Launch the Summit XL Sim + MoveIt  (requires icclab_summit_xl_move_it_config)
+ros2 launch icclab_summit_xl summit_xl_simulation_ign.launch.py
+ros2 launch icclab_summit_xl summit_xl_move_it.launch.py
 ```
 
 #### Terminal 2: Start MCP Server
