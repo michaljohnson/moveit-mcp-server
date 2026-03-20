@@ -24,3 +24,19 @@ services:
     stdin_open: true
     tty: true
     command: /bin/bash
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: moveit-mcp-server:rolling
+    container_name: moveit-mcp-test
+    network_mode: host
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+    volumes:
+      - ./config:/workspace/moveit-mcp-server/config:ro
+    entrypoint: ["/workspace/moveit-mcp-server/scripts/run_tests_headless.sh"]
+    command: []

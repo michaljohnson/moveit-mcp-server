@@ -119,6 +119,11 @@ class MoveItMCPServer:
         """Check if the server is fully initialized and ready to handle requests."""
         return self._initialized
 
+    async def start_with_wrapper(self, wrapper):
+        """Start the MCP server using an existing MoveItWrapper instance."""
+        self.moveit = wrapper
+        await self._start_services()
+
     async def start(self):
         """Start the MCP server and MoveIt components."""
         try:
@@ -127,50 +132,52 @@ class MoveItMCPServer:
             # Initialize MoveIt wrapper
             logger.info("Initializing MoveIt...")
             self.moveit = MoveItWrapper(self.config)
-
-            # Initialize async operation manager
-            mcp_config = self.config.get("mcp_server", {})
-            self.op_manager = AsyncOperationManager(
-                max_concurrent_operations=mcp_config.get("max_concurrent_operations", 10),
-                operation_timeout=mcp_config.get("operation_timeout", 60.0),
-            )
-            await self.op_manager.start()
-
-            # Register tools using unified registry
-            logger.info("Registering MCP tools...")
-            registry = ToolRegistry()
-
-            # Get tools from each module
-            planning_tools, planning_handlers = get_planning_tools(self.moveit, self.op_manager, server_instance=self)
-            execution_tools, execution_handlers = get_execution_tools(self.moveit, self.op_manager, server_instance=self)
-            scene_tools, scene_handlers = get_scene_tools(self.moveit, server_instance=self)
-            query_tools, query_handlers = get_query_tools(self.moveit, server_instance=self)
-
-            # Register all tools
-            registry.register_tools(planning_tools, planning_handlers)
-            registry.register_tools(execution_tools, execution_handlers)
-            registry.register_tools(scene_tools, scene_handlers)
-            registry.register_tools(query_tools, query_handlers)
-
-            # Setup unified server handlers
-            registry.setup_server_handlers(self.server)
-
-            # Register resources
-            logger.info("Registering MCP resources...")
-            register_resources(self.server, self.moveit, self.op_manager)
-
-            # Register prompts
-            logger.info("Registering MCP prompts...")
-            register_prompts(self.server)
-
-            # Mark as initialized
-            self._initialized = True
-
-            logger.info("MoveIt MCP Server started successfully")
-
+            await self._start_services()
         except Exception as e:
             logger.error(f"Failed to start server: {e}", exc_info=True)
             raise
+
+    async def _start_services(self):
+        """Initialize operation manager, register tools, resources, and prompts."""
+        # Initialize async operation manager
+        mcp_config = self.config.get("mcp_server", {})
+        self.op_manager = AsyncOperationManager(
+            max_concurrent_operations=mcp_config.get("max_concurrent_operations", 10),
+            operation_timeout=mcp_config.get("operation_timeout", 60.0),
+        )
+        await self.op_manager.start()
+
+        # Register tools using unified registry
+        logger.info("Registering MCP tools...")
+        registry = ToolRegistry()
+
+        # Get tools from each module
+        planning_tools, planning_handlers = get_planning_tools(self.moveit, self.op_manager, server_instance=self)
+        execution_tools, execution_handlers = get_execution_tools(self.moveit, self.op_manager, server_instance=self)
+        scene_tools, scene_handlers = get_scene_tools(self.moveit, server_instance=self)
+        query_tools, query_handlers = get_query_tools(self.moveit, server_instance=self)
+
+        # Register all tools
+        registry.register_tools(planning_tools, planning_handlers)
+        registry.register_tools(execution_tools, execution_handlers)
+        registry.register_tools(scene_tools, scene_handlers)
+        registry.register_tools(query_tools, query_handlers)
+
+        # Setup unified server handlers
+        registry.setup_server_handlers(self.server)
+
+        # Register resources
+        logger.info("Registering MCP resources...")
+        register_resources(self.server, self.moveit, self.op_manager)
+
+        # Register prompts
+        logger.info("Registering MCP prompts...")
+        register_prompts(self.server)
+
+        # Mark as initialized
+        self._initialized = True
+
+        logger.info("MoveIt MCP Server started successfully")
 
     async def stop(self):
         """Stop the MCP server and cleanup."""

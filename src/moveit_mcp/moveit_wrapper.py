@@ -144,7 +144,8 @@ class MoveItWrapper:
             builder = builder.trajectory_execution(file_path="config/moveit_controllers.yaml")
             builder = builder.planning_scene_monitor(
                 publish_robot_description=True,
-                publish_robot_description_semantic=True
+                publish_robot_description_semantic=True,
+                publish_planning_scene=True
             )
             builder = builder.planning_pipelines(pipelines=["ompl"])
 
@@ -200,6 +201,9 @@ class MoveItWrapper:
 
         # Cache planning components
         self.planning_components: Dict[str, PlanningComponent] = {}
+
+        # Track collision objects added to the planning scene
+        self._collision_object_ids: set = set()
 
         # Get robot model and planning scene monitor
         self.robot_model = self.moveit.get_robot_model()
@@ -353,7 +357,7 @@ class MoveItWrapper:
         # Create robot state for goal
         robot_state = RobotState(self.robot_model)
         joint_model_group = self.robot_model.get_joint_model_group(group_name)
-        robot_state.set_joint_group_positions(joint_model_group, joint_positions)
+        robot_state.set_joint_group_positions(group_name, joint_positions)
 
         # Set goal
         planning_component.set_goal_state(robot_state=robot_state)
@@ -508,7 +512,7 @@ class MoveItWrapper:
         """
         robot_state = RobotState(self.robot_model)
         joint_model_group = self.robot_model.get_joint_model_group(group_name)
-        robot_state.set_joint_group_positions(joint_model_group, joint_positions)
+        robot_state.set_joint_group_positions(group_name, joint_positions)
 
         if not link_name:
             # Get the last link in the chain (tip link)
@@ -551,7 +555,7 @@ class MoveItWrapper:
             raise ValueError(f"No links found for group '{group_name}'")
 
         success = robot_state.set_from_ik(
-            joint_model_group, target_pose, link_name, timeout, attempts
+            group_name, target_pose, link_name, timeout
         )
 
         if success:
@@ -573,10 +577,10 @@ class MoveItWrapper:
         """
         robot_state = RobotState(self.robot_model)
         joint_model_group = self.robot_model.get_joint_model_group(group_name)
-        robot_state.set_joint_group_positions(joint_model_group, joint_positions)
+        robot_state.set_joint_group_positions(group_name, joint_positions)
 
         with self.planning_scene_monitor.read_only() as scene:
-            return scene.is_state_colliding(robot_state)
+            return scene.is_state_colliding(robot_state, group_name)
 
     def add_collision_box(
         self, object_id: str, pose: Pose, dimensions: List[float], frame_id: str = "world"
@@ -605,6 +609,7 @@ class MoveItWrapper:
         with self.planning_scene_monitor.read_write() as scene:
             scene.apply_collision_object(collision_object)
 
+        self._collision_object_ids.add(object_id)
         logger.info(f"Added collision box '{object_id}' to planning scene")
 
     def add_collision_sphere(
@@ -634,6 +639,7 @@ class MoveItWrapper:
         with self.planning_scene_monitor.read_write() as scene:
             scene.apply_collision_object(collision_object)
 
+        self._collision_object_ids.add(object_id)
         logger.info(f"Added collision sphere '{object_id}' to planning scene")
 
     def remove_collision_object(self, object_id: str):
@@ -650,6 +656,7 @@ class MoveItWrapper:
         with self.planning_scene_monitor.read_write() as scene:
             scene.apply_collision_object(collision_object)
 
+        self._collision_object_ids.discard(object_id)
         logger.info(f"Removed collision object '{object_id}' from planning scene")
 
     def clear_planning_scene(self):
@@ -657,6 +664,7 @@ class MoveItWrapper:
         with self.planning_scene_monitor.read_write() as scene:
             scene.remove_all_collision_objects()
 
+        self._collision_object_ids.clear()
         logger.info("Cleared all collision objects from planning scene")
 
     def get_planning_scene_objects(self) -> List[str]:
@@ -666,5 +674,4 @@ class MoveItWrapper:
         Returns:
             List of object IDs
         """
-        with self.planning_scene_monitor.read_only() as scene:
-            return list(scene.get_known_object_names())
+        return sorted(self._collision_object_ids)

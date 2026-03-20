@@ -1,24 +1,37 @@
 """Fixtures and utilities for integration tests."""
 
 import os
-import pytest
 import subprocess
 import time
+
+import pytest
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Write pytest exit code to a file before ROS2 teardown can crash the process."""
+    with open("/tmp/.pytest_exitcode", "w") as f:
+        f.write(str(exitstatus))
+
+
+def pytest_addoption(parser):
+    """Add custom pytest command line options."""
+    parser.addoption(
+        "--run-execution-tests",
+        action="store_true",
+        default=False,
+        help="Run execution tests that will move the robot (WARNING: Robot will move!)",
+    )
 
 
 def is_ros_available():
     """Check if ROS2 is available in the environment."""
     try:
-        # Check if ROS_DISTRO is set
-        ros_distro = os.environ.get('ROS_DISTRO')
-        if not ros_distro:
+        if not os.environ.get('ROS_DISTRO'):
             return False
-
-        # Check if ros2 command is available
         result = subprocess.run(
-            ['ros2', '--version'],
+            ['ros2', 'topic', 'list'],
             capture_output=True,
-            timeout=5
+            timeout=10,
         )
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -38,7 +51,6 @@ def is_moveit_available():
 def is_demo_running():
     """Check if MoveIt demo is running by checking for required topics."""
     try:
-        # Check if /joint_states topic exists
         result = subprocess.run(
             ['ros2', 'topic', 'list'],
             capture_output=True,
@@ -47,30 +59,62 @@ def is_demo_running():
         )
         if result.returncode != 0:
             return False
-
         topics = result.stdout
         return '/joint_states' in topics and '/robot_description' in topics
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
 
 
-# Pytest markers
-ros_available = pytest.mark.skipif(
-    not is_ros_available(),
-    reason="ROS2 is not available in the environment"
-)
+@pytest.fixture(scope="session", autouse=True)
+def require_moveit_demo():
+    """Fail the test session immediately if the MoveIt demo is not running."""
+    if not is_ros_available():
+        pytest.fail(
+            "ROS2 is not available. Source the ROS setup:\n"
+            "  source /opt/ros/$ROS_DISTRO/setup.bash"
+        )
+    if not is_moveit_available():
+        pytest.fail(
+            "MoveIt2 Python bindings are not available. "
+            "Ensure moveit_py is installed and ROS environment is sourced."
+        )
+    if not is_demo_running():
+        pytest.fail(
+            "MoveIt demo is not running. Start it with:\n"
+            "  ros2 launch moveit_resources_panda_moveit_config demo.launch.py"
+        )
 
-moveit_available = pytest.mark.skipif(
-    not is_moveit_available(),
-    reason="MoveIt2 Python bindings are not available"
-)
 
-demo_running = pytest.mark.skipif(
-    not is_demo_running(),
-    reason="MoveIt demo is not running. Start it with: ros2 launch moveit_resources_panda_moveit_config demo.launch.py"
-)
+@pytest.fixture(scope="session")
+def wrapper():
+    """Shared MoveItWrapper instance for all tests.
 
-requires_ros = pytest.mark.integration
+    Creating multiple MoveItPy nodes in the same process causes crashes,
+    so we reuse a single instance across the entire test session.
+    """
+    from moveit_mcp.moveit_wrapper import MoveItWrapper
+
+    time.sleep(2.0)
+    w = MoveItWrapper({
+        "robot": {"name": "panda"},
+        "mcp_server": {"node_name": "test_wrapper"},
+    })
+    yield w
+    w.shutdown()
+
+
+@pytest.fixture(scope="session")
+def mcp_server(wrapper):
+    """MCP server instance that reuses the shared wrapper."""
+    import asyncio
+    from moveit_mcp.server import MoveItMCPServer
+
+    server = MoveItMCPServer()
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    loop.run_until_complete(server.start_with_wrapper(wrapper))
+    yield server
+    loop.run_until_complete(server.stop())
+    loop.close()
 
 
 @pytest.fixture
@@ -93,14 +137,5 @@ def sample_pose():
     """Return a sample Cartesian pose."""
     return {
         'position': [0.3, 0.0, 0.5],
-        'orientation': [0.0, 0.0, 0.0, 1.0]  # quaternion
+        'orientation': [0.0, 0.0, 0.0, 1.0]
     }
-
-
-@pytest.fixture
-def wait_for_initialization():
-    """Fixture that provides a function to wait for system initialization."""
-    def wait(seconds=2.0):
-        """Wait for the system to initialize."""
-        time.sleep(seconds)
-    return wait

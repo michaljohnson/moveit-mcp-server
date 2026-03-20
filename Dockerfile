@@ -9,8 +9,8 @@ RUN apt-get install -y curl gnupg2 lsb-release && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/ros2.list && \
     apt-get update
 
-# Install Python and venv support
-RUN apt-get install -y python3-pip python3-venv && \
+# Install Python, venv support, and virtual framebuffer for headless testing
+RUN apt-get install -y python3-pip python3-venv xvfb && \
     rm -rf /var/lib/apt/lists/*
 
 # Create workspace
@@ -36,7 +36,7 @@ COPY . /workspace/moveit-mcp-server/
 
 # Install the MCP server (editable mode inside venv)
 RUN cd /workspace/moveit-mcp-server && \
-    pip install --no-cache-dir -e .
+    pip install --no-cache-dir -e ".[dev]"
 
 # Source ROS setup and workspace in bashrc
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
