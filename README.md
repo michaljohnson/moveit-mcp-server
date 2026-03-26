@@ -2,7 +2,7 @@
 
 Model Context Protocol (MCP) server for MoveIt2 motion planning, providing AI assistants with the ability to control and plan robot motions.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![ROS2](https://img.shields.io/badge/ROS2-Jazzy%20%7C%20Rolling-blue)](https://docs.ros.org/)
 [![MoveIt2](https://img.shields.io/badge/MoveIt2-Latest-green)](https://moveit.picknik.ai/)
 [![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white)](docs/DOCKER.md)
@@ -300,7 +300,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-MIT License
+Apache License 2.0 - See [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
