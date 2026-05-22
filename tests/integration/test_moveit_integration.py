@@ -62,6 +62,59 @@ class TestMoveItWrapperIntegration:
             assert isinstance(joint_positions, list)
             assert len(joint_positions) > 0
 
+    def test_compute_ik_seeds_from_current_state(self, wrapper):
+        """compute_ik must return joint values near the current robot state.
+
+        Regression test for the seed-from-current-state fix. The KDL /
+        numerical IK solver converges to whichever branch is closest to
+        the seed configuration. If the seed is a zero RobotState (the
+        previous behaviour), the solver can land on ±2π wrap-around
+        branches that look correct in Cartesian space but require a
+        ~6 rad joint sweep from the actual current configuration,
+        causing downstream plans to fail in self-collision.
+
+        Reproduce the test condition: take FK of the current joints to
+        get a guaranteed-reachable pose, then ask compute_ik to find
+        joint values for that same pose. With a correct seed the
+        result should match the current configuration within solver
+        tolerance. Without the fix, individual joints can differ by
+        ~2π.
+        """
+        with wrapper.planning_scene_monitor.read_only() as scene:
+            current = list(
+                scene.current_state.get_joint_group_positions("panda_arm")
+            )
+
+        # FK to a reachable pose (must succeed for the test to be valid).
+        pose = wrapper.compute_fk("panda_arm", current)
+        assert pose is not None, "FK on current joints failed — fixture issue"
+
+        ik_solution = wrapper.compute_ik("panda_arm", pose, timeout=5.0)
+        if ik_solution is None:
+            pytest.skip(
+                "IK returned None on a self-reachable pose — solver or "
+                "kinematics plugin issue, not a seeding issue"
+            )
+
+        # Each joint should sit close to the seed. The threshold is set
+        # well above solver tolerance (~1e-3) but well below the 2π
+        # wrap-around distance (~6.28). Picking 1.0 rad gives plenty of
+        # margin for a correctly-seeded IK and immediately catches a
+        # zero-seed wrap-around.
+        assert len(ik_solution) == len(current), (
+            f"IK returned {len(ik_solution)} joints, expected "
+            f"{len(current)} for panda_arm"
+        )
+        for joint_ik, joint_cur in zip(ik_solution, current):
+            diff = abs(joint_ik - joint_cur)
+            assert diff < 1.0, (
+                f"IK joint {joint_ik:.3f} rad differs from seed "
+                f"{joint_cur:.3f} rad by {diff:.3f} rad. With a correct "
+                f"seed this should be near zero. A diff near 2π (~6.28) "
+                f"indicates the solver is not seeded from the current "
+                f"robot state."
+            )
+
     def test_check_state_collision_free(self, wrapper, sample_joint_state):
         """Test collision check with a known collision-free state."""
         result = wrapper.check_state_collision(
