@@ -190,6 +190,16 @@ def get_execution_tools(
                 if target_type == "pose":
                     position = target["position"]
                     orientation = target["orientation"]
+                    # Resolve frame_id: caller-supplied if present,
+                    # otherwise the robot's MoveIt planning frame
+                    # (configured in the MoveIt config). Avoids the
+                    # previous behavior of silently defaulting to
+                    # "world" when the caller omits frame_id.
+                    if "frame_id" in target:
+                        frame_id = target["frame_id"]
+                    else:
+                        with moveit.planning_scene_monitor.read_only() as scene:
+                            frame_id = scene.planning_frame
                     from geometry_msgs.msg import Pose
 
                     pose = Pose()
@@ -204,6 +214,7 @@ def get_execution_tools(
                     plan_result = moveit.plan_to_pose(
                         group_name=group,
                         target_pose=pose,
+                        frame_id=frame_id,
                         planner_id=planner_id,
                         planning_time=timeout,
                     )
@@ -308,7 +319,15 @@ def get_execution_tools(
                     },
                     "target": {
                         "type": "object",
-                        "description": "Target specification (structure depends on target_type)",
+                        "description": (
+                            "Target specification (structure depends on target_type).\n"
+                            "  target_type='pose'        -> {position: [x,y,z], "
+                            "orientation: [x,y,z,w], frame_id?: string}. "
+                            "frame_id defaults to the robot's MoveIt planning frame "
+                            "when omitted.\n"
+                            "  target_type='joint_state' -> {joint_positions: [...]}\n"
+                            "  target_type='named_state' -> {state_name: string}"
+                        ),
                     },
                     "planner_id": {"type": "string", "description": "Optional planner ID"},
                     "timeout": {
