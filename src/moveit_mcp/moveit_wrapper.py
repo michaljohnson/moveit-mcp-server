@@ -156,6 +156,7 @@ class MoveItWrapper:
                 builder = builder.moveit_cpp(file_path=moveit_cpp_yaml_path)
 
             moveit_config = builder.to_moveit_configs()
+            self._apply_sensors(moveit_config)
         except Exception as e:
             logger.error(f"Failed to build MoveIt configuration: {e}")
             raise RuntimeError(f"Failed to load MoveIt configuration for {robot_name}: {e}")
@@ -218,6 +219,12 @@ class MoveItWrapper:
         logger.info("Shutting down MoveItWrapper")
         self.planning_components.clear()
         # MoveItPy handles its own cleanup
+
+    def _apply_sensors(self, moveit_config: Any) -> None:
+        """Clear the depth sensors (octomap) when planning.sensors_3d is false; on by default."""
+        # The builder ignores "sensors: []" and loads the package's sensors_3d.yaml, so clear it here
+        if not self.config.get("planning", {}).get("sensors_3d", True):
+            moveit_config.sensors_3d = {}
 
     def get_planning_component(self, group_name: str) -> PlanningComponent:
         """

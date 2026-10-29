@@ -142,6 +142,8 @@ moveit-mcp-server --config config/summit_xl_mcp_server.yaml --transport http --p
 > On the real robot, start with `--no-use-sim-time` (there is no `/clock`).
 > The warning `config/summit_xl.urdf.xacro doesn't exist ... loaded from /robot_description topic` is expected:
 > the robot model comes from `/robot_description`, which on the real robot carries the arm's calibration.
+> `--no-sensors-3d` starts without the depth sensors (octomap) of the MoveIt config, e.g. when the depth images
+> reach the server too late to be useful.
 
 ### Connecting Claude Desktop
 
