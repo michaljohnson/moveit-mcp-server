@@ -383,12 +383,15 @@ class MoveItMCPServer:
 
 
 def apply_overrides(config: dict, use_sim_time: Optional[bool] = None,
-                    sensors_3d: Optional[bool] = None) -> None:
+                    sensors_3d: Optional[bool] = None,
+                    publish_robot_description: Optional[bool] = None) -> None:
     """Command-line values over the config file."""
     if use_sim_time is not None:
         config.setdefault("mcp_server", {})["use_sim_time"] = use_sim_time
     if sensors_3d is not None:
         config.setdefault("planning", {})["sensors_3d"] = sensors_3d
+    if publish_robot_description is not None:
+        config.setdefault("planning", {})["publish_robot_description"] = publish_robot_description
 
 
 def main():
@@ -441,12 +444,19 @@ def main():
         default=None,
         help="Override planning.sensors_3d (default on): --no-sensors-3d starts without the depth sensors (octomap)",
     )
+    parser.add_argument(
+        "--publish-robot-description",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override planning.publish_robot_description (default on), including the semantic description",
+    )
 
     args = parser.parse_args()
 
     # Create and run server
     server = MoveItMCPServer(config_path=args.config)
-    apply_overrides(server.config, use_sim_time=args.use_sim_time, sensors_3d=args.sensors_3d)
+    apply_overrides(server.config, use_sim_time=args.use_sim_time, sensors_3d=args.sensors_3d,
+                    publish_robot_description=args.publish_robot_description)
 
     # Override log level if specified
     if args.log_level:

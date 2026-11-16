@@ -25,3 +25,9 @@ def test_no_sensors_3d_flag_overrides_config():
     config = {"planning": {"sensors_3d": True}}
     apply_overrides(config, sensors_3d=False)
     assert config["planning"]["sensors_3d"] is False
+
+
+def test_no_publish_robot_description_overrides_config():
+    config = {"planning": {"publish_robot_description": True}}
+    apply_overrides(config, publish_robot_description=False)
+    assert config["planning"]["publish_robot_description"] is False
