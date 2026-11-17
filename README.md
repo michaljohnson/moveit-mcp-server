@@ -144,6 +144,8 @@ moveit-mcp-server --config config/summit_xl_mcp_server.yaml --transport http --p
 > the robot model comes from `/robot_description`, which on the real robot carries the arm's calibration.
 > `--no-sensors-3d` starts without the depth sensors (octomap) of the MoveIt config, e.g. when the depth images
 > reach the server too late to be useful.
+> `--no-publish-robot-description` leaves `/robot_description` and `/robot_description_semantic` to the running
+> system (e.g. `robot_state_publisher` and `move_group` in a sim), so the server does not publish a second latched copy.
 
 ### Connecting Claude Desktop
 

@@ -144,9 +144,10 @@ class MoveItWrapper:
             builder = builder.robot_description(file_path=f"config/{robot_name}.urdf.xacro")
             builder = builder.robot_description_semantic(file_path=f"config/{robot_name}.srdf")
             builder = builder.trajectory_execution(file_path="config/moveit_controllers.yaml")
+            publish_description = self.config.get("planning", {}).get("publish_robot_description", True)
             builder = builder.planning_scene_monitor(
-                publish_robot_description=True,
-                publish_robot_description_semantic=True,
+                publish_robot_description=publish_description,
+                publish_robot_description_semantic=publish_description,
                 publish_planning_scene=True
             )
             builder = builder.planning_pipelines(pipelines=["ompl"])
